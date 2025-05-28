@@ -7,12 +7,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	var finder Finder = NewYTvideos()
+	apiKey, err := getAPIKey()
+	if err != nil {
+		log.Fatalf("Error loading API key: %v", err)
+	}
+	var finder Finder = NewYTvideoFinder(apiKey)
 
-	resources, err := finder.Find()
+	resources, err := finder.Find(10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +57,19 @@ type Resource interface {
 }
 
 type Finder interface {
-	Find() ([]Resource, error)
+	Find(max int) ([]Resource, error)
+}
+
+func getAPIKey() (string, error) {
+	if err := godotenv.Load(); err != nil {
+		return "", fmt.Errorf("failed to load .env file: %v", err)
+	}
+
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		return "", fmt.Errorf("API_KEY is not set in the environment")
+	}
+	return apiKey, nil
 }
 
 // ファイルに保存する関数
