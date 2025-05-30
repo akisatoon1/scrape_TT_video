@@ -35,10 +35,10 @@ func (v *YTvideoFinder) Find(max int) ([]Resource, error) {
 		return nil, err
 	}
 
-	var videos []Resource
-	for _, id := range videoIDs {
+	var videos = make([]Resource, max)
+	for i, id := range videoIDs {
 		videoURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", id)
-		videos = append(videos, NewYTvideo(videoURL))
+		videos[i] = NewYTvideo(videoURL)
 	}
 
 	return videos, nil
@@ -67,9 +67,9 @@ func (v *YTvideoFinder) findVideoIDs(max int) ([]string, error) {
 		return nil, fmt.Errorf("YouTube API検索エラー: %v", err)
 	}
 
-	var videoIDs []string
-	for _, item := range response.Items {
-		videoIDs = append(videoIDs, item.Id.VideoId)
+	var videoIDs = make([]string, max)
+	for i, item := range response.Items {
+		videoIDs[i] = item.Id.VideoId
 	}
 
 	return videoIDs, nil
