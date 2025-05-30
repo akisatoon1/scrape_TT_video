@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -36,34 +35,27 @@ func main() {
 	// 逐次処理
 	log.Println("動画の逐次ダウンロードを開始します")
 
-	for i, downloader := range resources {
-		log.Printf("動画 %d のダウンロードを開始します", i)
+	for i, rsrc := range resources {
+		id := rsrc.ID()
+		log.Printf("%v) 動画 %v のダウンロードを開始します\n", i, id)
 
 		// ダウンロード実行
-		data, err := downloader.Download()
+		filename := id + ".mp4"
+		err := rsrc.Download(filename)
 		if err != nil {
-			log.Printf("Error downloading video %d: %v", i, err)
+			log.Printf("Error downloading video %v: %v\n", id, err)
 			continue
 		}
 
-		// ファイル名を生成
-		filename := filepath.Join("downloads", fmt.Sprintf("video_%d.mp4", i))
-
-		// ファイルに保存
-		err = saveToFile(data, filename)
-		if err != nil {
-			log.Printf("Error saving video to %s: %v", filename, err)
-			continue
-		}
-
-		log.Printf("Successfully downloaded and saved video %d to %s", i, filename)
+		log.Printf("Successfully downloaded and saved video %v to %s\n", id, filename)
 	}
 
 	log.Println("All downloads completed")
 }
 
 type Resource interface {
-	Download() ([]byte, error)
+	ID() string
+	Download(filename string) error
 }
 
 type Finder interface {
@@ -80,15 +72,4 @@ func getAPIKey() (string, error) {
 		return "", fmt.Errorf("API_KEY is not set in the environment")
 	}
 	return apiKey, nil
-}
-
-// ファイルに保存する関数
-func saveToFile(data []byte, filename string) error {
-	// ディレクトリを作成
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	return os.WriteFile(filename, data, 0644)
 }

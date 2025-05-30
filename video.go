@@ -6,22 +6,50 @@ import (
 	"context"
 	"fmt"
 
+	ytdownloader "github.com/kkdai/youtube/v2/downloader"
 	"google.golang.org/api/option"
-	"google.golang.org/api/youtube/v3"
+	ytapi "google.golang.org/api/youtube/v3"
 )
 
 // Resource interfaceの実装
 type YTvideo struct {
-	url string
+	id string
 }
 
-func (*YTvideo) Download() ([]byte, error) {
-	// TODO: 未実装
-	return []byte("data"), nil
+func NewYTvideo(id string) *YTvideo {
+	return &YTvideo{id: id}
 }
 
-func NewYTvideo(url string) *YTvideo {
-	return &YTvideo{url: url}
+func (v *YTvideo) ID() string {
+	return v.id
+}
+
+func (v *YTvideo) Download(filename string) error {
+	downloader := ytdownloader.Downloader{}
+
+	// 動画を取得
+	video, err := downloader.GetVideo(v.id)
+	if err != nil {
+		return fmt.Errorf("YouTubeビデオの取得エラー: %v", err)
+	}
+
+	// 動画のフォーマットを取得
+	formats := video.Formats.Type("video/mp4").Quality("medium")
+	if len(formats) == 0 {
+		return fmt.Errorf("動画のフォーマットが見つかりませんでした")
+	}
+
+	// 動画をダウンロード
+	// TODO: contextについて
+	ctx := context.Background()
+	// TODO: フォーマットによる違いがある
+	err = downloader.Download(ctx, video, &formats[0], filename)
+	if err != nil {
+		return fmt.Errorf("動画のダウンロードエラー: %v", err)
+	}
+	fmt.Printf("動画 %s を %s に保存しました\n", v.id, filename)
+
+	return nil
 }
 
 // Finder interfaceの実装
@@ -29,25 +57,13 @@ type YTvideoFinder struct {
 	apiKey string
 }
 
-func (v *YTvideoFinder) Find(max int) ([]Resource, error) {
-	videoIDs, err := v.findVideoIDs(max)
-	if err != nil {
-		return nil, err
-	}
-
-	var videos = make([]Resource, max)
-	for i, id := range videoIDs {
-		videoURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", id)
-		videos[i] = NewYTvideo(videoURL)
-	}
-
-	return videos, nil
+func NewYTvideoFinder(apiKey string) *YTvideoFinder {
+	return &YTvideoFinder{apiKey: apiKey}
 }
 
-// YouTube動画を検索し、videoIDのリストを返す
-func (v *YTvideoFinder) findVideoIDs(max int) ([]string, error) {
+func (v *YTvideoFinder) Find(max int) ([]Resource, error) {
 	ctx := context.Background()
-	youtubeService, err := youtube.NewService(ctx, option.WithAPIKey(v.apiKey))
+	youtubeService, err := ytapi.NewService(ctx, option.WithAPIKey(v.apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("YouTube APIの初期化エラー: %v", err)
 	}
@@ -67,14 +83,10 @@ func (v *YTvideoFinder) findVideoIDs(max int) ([]string, error) {
 		return nil, fmt.Errorf("YouTube API検索エラー: %v", err)
 	}
 
-	var videoIDs = make([]string, max)
+	ytVideos := make([]Resource, max)
 	for i, item := range response.Items {
-		videoIDs[i] = item.Id.VideoId
+		ytVideos[i] = NewYTvideo(item.Id.VideoId)
 	}
 
-	return videoIDs, nil
-}
-
-func NewYTvideoFinder(apiKey string) *YTvideoFinder {
-	return &YTvideoFinder{apiKey: apiKey}
+	return ytVideos, nil
 }
