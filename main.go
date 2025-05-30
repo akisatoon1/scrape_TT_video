@@ -7,18 +7,28 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	// コマンドライン引数のチェック
+	if len(os.Args) != 2 {
+		log.Fatal("Usage: go run main.go <max>")
+	}
+	max, err := strconv.Atoi(os.Args[1])
+	if err != nil || max <= 0 {
+		log.Fatal("Invalid max value. It should be a positive integer.")
+	}
+
 	apiKey, err := getAPIKey()
 	if err != nil {
 		log.Fatalf("Error loading API key: %v", err)
 	}
 	var finder Finder = NewYTvideoFinder(apiKey)
 
-	resources, err := finder.Find(10)
+	resources, err := finder.Find(max)
 	if err != nil {
 		log.Fatal(err)
 	}
