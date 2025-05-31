@@ -6,16 +6,16 @@ import (
 )
 
 func TestFind(t *testing.T) {
-	if os.Getenv("RUN_API_TESTS") != "true" {
-		t.Skip("APIテストはRUN_API_TESTS=trueで実行します")
-	}
-
 	apiKey, err := getAPIKey()
 	if err != nil {
 		t.Fatalf("Error loading API key: %v", err)
 	}
+	if os.Getenv("RUN_API_TESTS") != "true" {
+		t.Skip("APIテストはRUN_API_TESTS=trueで実行します")
+	}
+
 	finder := NewYTvideoFinder(apiKey)
-	max := 10
+	max := 111
 	ytVideos, err := finder.Find(max)
 	if err != nil {
 		t.Fatalf("Failed to find video IDs: %v", err)
@@ -25,9 +25,11 @@ func TestFind(t *testing.T) {
 	if l != max {
 		t.Errorf("Expected %d video IDs, got %d", max, l)
 	}
-	t.Logf("Found videos len: %d", l)
-	for _, video := range ytVideos {
-		t.Logf("Video ID: %s", video.ID())
+	t.Logf("Output first 10 video IDs:")
+	for i, video := range ytVideos {
+		if i <= 10 {
+			t.Logf("Video ID: %s", video.ID())
+		}
 	}
 }
 

@@ -68,24 +68,47 @@ func (v *YTvideoFinder) Find(max int) ([]Resource, error) {
 		return nil, fmt.Errorf("YouTube APIの初期化エラー: %v", err)
 	}
 
-	// 卓球に関する動画を検索するクエリを作成
-	// TODO: max>50の時の処理
-	// TODO: クエリを最適化したい
-	call := youtubeService.Search.List([]string{"id"}).
-		Q("table tennis").       // 卓球の英語表記
-		MaxResults(int64(max)).  // 最大結果数
-		Type("video").           // 動画のみ
-		RelevanceLanguage("ja"). // 日本語の動画を優先
-		VideoEmbeddable("true")  // 埋め込み可能な動画のみ
+	// 最大max件の動画IDを取得する
 
-	response, err := call.Do()
-	if err != nil {
-		return nil, fmt.Errorf("YouTube API検索エラー: %v", err)
-	}
+	ytVideos := make([]Resource, 0, max)
+	var nextPageToken string
 
-	ytVideos := make([]Resource, max)
-	for i, item := range response.Items {
-		ytVideos[i] = NewYTvideo(item.Id.VideoId)
+	for restSize := int64(max); restSize > 0; restSize -= 50 {
+		var requestSize int64
+		if restSize > 50 {
+			requestSize = 50
+		} else {
+			requestSize = restSize
+		}
+
+		// 卓球に関する動画を検索するクエリを作成
+		call := youtubeService.Search.List([]string{"id"}).
+			Q("table tennis").       // 卓球の英語表記
+			MaxResults(requestSize). // 1回のリクエストあたりの最大結果数
+			Type("video").           // 動画のみ
+			RelevanceLanguage("ja"). // 日本語の動画を優先
+			VideoEmbeddable("true")  // 埋め込み可能な動画のみ
+
+		// 2ページ目以降の場合、nextPageTokenを設定
+		if nextPageToken != "" {
+			call = call.PageToken(nextPageToken)
+		}
+
+		// リクエスト実行
+		response, err := call.Do()
+		if err != nil {
+			return nil, fmt.Errorf("YouTube API検索エラー: %v", err)
+		}
+
+		// 結果を追加
+		for _, item := range response.Items {
+			ytVideos = append(ytVideos, NewYTvideo(item.Id.VideoId))
+		}
+
+		nextPageToken = response.NextPageToken
+		if nextPageToken == "" {
+			break
+		}
 	}
 
 	return ytVideos, nil

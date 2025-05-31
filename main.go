@@ -62,6 +62,7 @@ type Finder interface {
 	Find(max int) ([]Resource, error)
 }
 
+// TODO: env読み込みを分ける
 func getAPIKey() (string, error) {
 	if err := godotenv.Load(); err != nil {
 		return "", fmt.Errorf("failed to load .env file: %v", err)
