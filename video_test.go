@@ -1,10 +1,15 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
-// TODO: apiリクエストをするので、テストを分けたい
-/*
 func TestFind(t *testing.T) {
+	if os.Getenv("RUN_API_TESTS") != "true" {
+		t.Skip("APIテストはRUN_API_TESTS=trueで実行します")
+	}
+
 	apiKey, err := getAPIKey()
 	if err != nil {
 		t.Fatalf("Error loading API key: %v", err)
@@ -25,7 +30,6 @@ func TestFind(t *testing.T) {
 		t.Logf("Video ID: %s", video.ID())
 	}
 }
-*/
 
 func TestDownload(t *testing.T) {
 	url := "https://www.youtube.com/watch?v=ekr2nIex040"
